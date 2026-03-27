@@ -3,11 +3,6 @@ import java.util.Scanner;
 
 public class Game {
 
-    private static final int MAX_CHARACTERS = 10;
-    private static final int TOTAL_POINTS = 60;
-    private static final int BASE_STAT = 5;
-    private static final int STAT_COUNT = 6;
-
     private Scanner scanner;
     private Random random;
 
@@ -17,7 +12,7 @@ public class Game {
     public Game() {
         scanner = new Scanner(System.in);
         random = new Random();
-        characters = new RpgCharacter[MAX_CHARACTERS];
+        characters = new RpgCharacter[20];
         characterCount = 0;
     }
 
@@ -38,7 +33,7 @@ public class Game {
                     createCharacter();
                     break;
                 case 2:
-                    listCharacters(true);
+                    listCharacters();
                     break;
                 case 3:
                     playSimpleCombat();
@@ -54,7 +49,7 @@ public class Game {
 
     private void showMenu() {
         System.out.println();
-        System.out.println("===== JOC RPG =====");
+        System.out.println("===== JOC RPG AMB HERENCIA =====");
         System.out.println("1. Crear personatge");
         System.out.println("2. Llistar personatges");
         System.out.println("3. Combat 1 vs 1");
@@ -63,20 +58,16 @@ public class Game {
 
     private void createCharacter() {
         if (characterCount >= characters.length) {
-            System.out.println("No es poden crear mes personatges.");
+            System.out.println("No hi caben mes personatges.");
             return;
         }
 
         System.out.println();
-        System.out.println("--- Crear personatge ---");
-
+        System.out.println("--- CREAR PERSONATGE ---");
         String name = readNonEmptyText("Nom: ");
-        int age = readIntInRange("Edat: ", 1, 300);
-        String race = readRace();
-
-        System.out.println("1. Repartiment manual de caracteristiques");
-        System.out.println("2. Repartiment automatic de caracteristiques");
-        int mode = readIntInRange("Escull una opcio: ", 1, 2);
+        int age = readIntInRange("Edat: ", 1, 120);
+        int raceOption = readIntInRange("Raca (1.Huma 2.Elf 3.Orc 4.Nan): ", 1, 4);
+        int mode = readIntInRange("Creacio (1.Manual 2.Automatica): ", 1, 2);
 
         int[] stats;
         if (mode == 1) {
@@ -85,76 +76,37 @@ public class Game {
             stats = createStatsAutomatic();
         }
 
-        RpgCharacter character = new RpgCharacter(name, race, age,
-                stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]);
-
-        addWeaponsToCharacter(character);
+        RpgCharacter character = buildCharacter(name, age, raceOption, stats);
+        giveDefaultWeapons(character);
 
         characters[characterCount] = character;
         characterCount++;
 
-        System.out.println("Personatge creat correctament.");
-        System.out.println(character.getShortDescription());
+        System.out.println("Personatge creat correctament:");
+        System.out.println(character.getFullDescription());
     }
 
-    private int[] createStatsManual() {
-        int[] stats = {BASE_STAT, BASE_STAT, BASE_STAT, BASE_STAT, BASE_STAT, BASE_STAT};
-        int remainingPoints = TOTAL_POINTS - (BASE_STAT * STAT_COUNT);
-
-        String[] names = {"Forca", "Destresa", "Constitucio", "Intelligencia", "Saviesa", "Carisma"};
-
-        System.out.println();
-        System.out.println("Totes les caracteristiques comencen amb 5 punts.");
-        System.out.println("Et queden " + remainingPoints + " punts per repartir fins a un maxim de 20.");
-
-        for (int i = 0; i < stats.length; i++) {
-            int maxExtra = 20 - BASE_STAT;
-            int assign = readIntInRange("Punts extra per a " + names[i] + " (0-" + maxExtra + "): ", 0, maxExtra);
-
-            while (assign > remainingPoints) {
-                System.out.println("No tens prou punts. Et queden " + remainingPoints + ".");
-                assign = readIntInRange("Torna-ho a provar per a " + names[i] + ": ", 0, maxExtra);
-            }
-
-            stats[i] += assign;
-            remainingPoints -= assign;
-            System.out.println("Punts restants: " + remainingPoints);
+    private RpgCharacter buildCharacter(String name, int age, int raceOption, int[] stats) {
+        switch (raceOption) {
+            case 1:
+                return new Human(name, age, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]);
+            case 2:
+                return new Elf(name, age, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]);
+            case 3:
+                return new Orc(name, age, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]);
+            default:
+                return new Nan(name, age, stats[0], stats[1], stats[2], stats[3], stats[4], stats[5]);
         }
-
-        while (remainingPoints > 0) {
-            System.out.println();
-            System.out.println("Encara queden " + remainingPoints + " punts per repartir.");
-            showStatMenu(stats);
-            int option = readIntInRange("A quina caracteristica vols afegir 1 punt? ", 1, 6);
-
-            if (stats[option - 1] < 20) {
-                stats[option - 1]++;
-                remainingPoints--;
-            } else {
-                System.out.println("Aquesta caracteristica ja esta al maxim.");
-            }
-        }
-
-        return stats;
-    }
-
-    private void showStatMenu(int[] stats) {
-        System.out.println("1. Forca: " + stats[0]);
-        System.out.println("2. Destresa: " + stats[1]);
-        System.out.println("3. Constitucio: " + stats[2]);
-        System.out.println("4. Intelligencia: " + stats[3]);
-        System.out.println("5. Saviesa: " + stats[4]);
-        System.out.println("6. Carisma: " + stats[5]);
     }
 
     private int[] createStatsAutomatic() {
-        int[] stats = {BASE_STAT, BASE_STAT, BASE_STAT, BASE_STAT, BASE_STAT, BASE_STAT};
-        int points = TOTAL_POINTS - (BASE_STAT * STAT_COUNT);
+        int[] stats = {5, 5, 5, 5, 5, 5};
+        int points = 30;
 
         while (points > 0) {
-            int pos = random.nextInt(STAT_COUNT);
-            if (stats[pos] < 20) {
-                stats[pos]++;
+            int position = random.nextInt(stats.length);
+            if (stats[position] < 20) {
+                stats[position]++;
                 points--;
             }
         }
@@ -162,224 +114,160 @@ public class Game {
         return stats;
     }
 
-    private void addWeaponsToCharacter(RpgCharacter character) {
-        System.out.println();
-        System.out.println("--- Crear armes del personatge ---");
-        int weaponAmount = readIntInRange("Quantes armes vols afegir? (1-5): ", 1, 5);
+    private int[] createStatsManual() {
+        String[] names = {"Forca", "Destresa", "Constitucio", "Intelligencia", "Saviesa", "Carisma"};
+        int[] stats = new int[6];
+        int remaining = 60;
 
-        for (int i = 0; i < weaponAmount; i++) {
-            System.out.println();
-            System.out.println("Arma " + (i + 1));
+        for (int i = 0; i < stats.length; i++) {
+            int remainingSlots = stats.length - i - 1;
+            int minValue = 5;
+            int maxValue = Math.min(20, remaining - (remainingSlots * 5));
 
-            String name = readNonEmptyText("Nom de l'arma: ");
-            String type = readWeaponType();
-            int damage = readIntInRange("Dany (1-100): ", 1, 100);
-            boolean magical = readYesNo("Es magica? (s/n): ");
-
-            if (magical && character.getIntelligence() < 10) {
-                System.out.println("Aquest personatge no te prou intelligencia per equipar armes magiques.");
-                magical = false;
-                System.out.println("L'arma es guardara com a arma fisica.");
-            }
-
-            character.addWeapon(new Weapon(name, type, damage, magical));
+            stats[i] = readIntInRange(names[i] + " (" + minValue + "-" + maxValue + "): ", minValue, maxValue);
+            remaining -= stats[i];
         }
 
-        chooseWeapon(character);
+        return stats;
     }
 
-    private void chooseWeapon(RpgCharacter character) {
-        if (character.getWeaponCount() == 0) {
-            return;
-        }
+    private void giveDefaultWeapons(RpgCharacter character) {
+        character.addWeapon(new Weapon("Punys", "Natural", 0, false));
 
-        System.out.println();
-        System.out.println("Armes disponibles de " + character.getName() + ":");
-        showWeapons(character);
-        int option = readIntInRange("Quina arma vols equipar? ", 1, character.getWeaponCount());
-
-        if (character.equipWeapon(option - 1)) {
-            System.out.println("Arma equipada correctament.");
-        } else {
-            System.out.println("No s'ha pogut equipar l'arma.");
+        if (character instanceof Human) {
+            character.addWeapon(new Weapon("Espasa llarga", "Espasa", 30, false));
+            character.addWeapon(new Weapon("Basto runic", "Basto", 25, true));
+        } else if (character instanceof Elf) {
+            character.addWeapon(new Weapon("Arc fi", "Arc", 35, false));
+            character.addWeapon(new Weapon("Vareta antiga", "Basto", 40, true));
+        } else if (character instanceof Orc) {
+            character.addWeapon(new Weapon("Destral pesada", "Destral", 40, false));
+            character.addWeapon(new Weapon("Massa", "Massa", 28, false));
+        } else if (character instanceof Nan) {
+            character.addWeapon(new Weapon("Martell de guerra", "Martell", 38, false));
+            character.addWeapon(new Weapon("Destral curta", "Destral", 25, false));
         }
     }
 
-    private void showWeapons(RpgCharacter character) {
-        for (int i = 0; i < character.getWeaponCount(); i++) {
-            Weapon weapon = character.getWeapon(i);
-            String equippedText = "";
-            if (weapon == character.getEquippedWeapon()) {
-                equippedText = " [EQUIPADA]";
-            }
-            System.out.println((i + 1) + ". " + weapon + equippedText);
-        }
-    }
-
-    private void listCharacters(boolean showDetails) {
+    private void listCharacters() {
         if (characterCount == 0) {
             System.out.println("No hi ha personatges creats.");
             return;
         }
 
         System.out.println();
-        System.out.println("--- Personatges ---");
+        System.out.println("--- LLISTA DE PERSONATGES ---");
         for (int i = 0; i < characterCount; i++) {
-            System.out.println((i + 1) + ". " + characters[i].getShortDescription());
-            if (showDetails) {
-                System.out.println(characters[i].getFullDescription());
-                System.out.println();
-            }
+            System.out.println((i + 1) + ". " + characters[i].getFullDescription());
         }
     }
 
     private void playSimpleCombat() {
         if (characterCount < 2) {
-            System.out.println("Necessites almenys 2 personatges per poder jugar.");
+            System.out.println("Necessites com a minim 2 personatges.");
             return;
         }
 
         System.out.println();
-        System.out.println("--- Combat 1 vs 1 ---");
-        listCharacters(false);
+        System.out.println("--- COMBAT SIMPLE ---");
+        listCharacters();
 
-        int p1 = chooseCharacter("Jugador 1, tria personatge: ", -1);
-        int p2 = chooseCharacter("Jugador 2, tria personatge: ", p1);
+        int p1 = selectCharacter("Jugador 1 tria personatge: ");
+        int p2 = selectCharacter("Jugador 2 tria personatge: ");
+
+        while (p2 == p1) {
+            System.out.println("No podeu triar el mateix personatge.");
+            p2 = selectCharacter("Jugador 2 tria un altre personatge: ");
+        }
 
         RpgCharacter player1 = characters[p1];
         RpgCharacter player2 = characters[p2];
-
         RpgCharacter current = player1;
         RpgCharacter enemy = player2;
-        int turn = 1;
+
+        System.out.println();
+        System.out.println("Comenca el combat entre " + player1.getName() + " i " + player2.getName() + ".");
 
         while (player1.isAlive() && player2.isAlive()) {
             System.out.println();
-            System.out.println("===== TORN " + turn + " =====");
-            showBattleStatus(player1, player2);
+            System.out.println("Torn de " + current.getName() + " (" + current.getRace() + ")");
 
-            if (current.getWeaponCount() > 0) {
-                boolean changeWeapon = readYesNo(current.getName() + ", vols canviar d'arma? (s/n): ");
-                if (changeWeapon) {
-                    showWeapons(current);
-                    int weaponOption = readIntInRange("Escull arma: ", 1, current.getWeaponCount());
-                    if (current.equipWeapon(weaponOption - 1)) {
-                        System.out.println("Ara porta equipada: " + current.getEquippedWeapon().getName());
-                    } else {
-                        System.out.println("No pot equipar aquesta arma.");
-                    }
+            current.regenerateLife();
+            current.regenerateMana();
+            showTurnStatus(current, enemy);
+
+            int changeWeapon = readIntInRange("Vols canviar d'arma? (1.Si 2.No): ", 1, 2);
+            if (changeWeapon == 1) {
+                current.showWeapons();
+                int weaponOption = readIntInRange("Tria arma: ", 1, current.getWeaponCount());
+                if (current.equipWeapon(weaponOption - 1)) {
+                    System.out.println("Ara porta: " + current.getEquippedWeapon().getName());
+                } else {
+                    System.out.println("No pot equipar aquesta arma.");
                 }
             }
 
             System.out.println("1. Atacar");
             System.out.println("2. Defensar-se");
-            int action = readIntInRange("Opcio: ", 1, 2);
+            System.out.println("3. Descansar");
+            int action = readIntInRange("Opcio: ", 1, 3);
 
             if (action == 1) {
                 int damage = current.attack(enemy, random);
-
                 if (damage == 0) {
                     System.out.println(enemy.getName() + " ha esquivat l'atac.");
                 } else {
-                    String weaponName = "sense arma";
-                    if (current.getEquippedWeapon() != null) {
-                        weaponName = current.getEquippedWeapon().getName();
-                    }
-                    System.out.println(current.getName() + " ataca amb " + weaponName +
-                            " i fa " + damage + " de dany.");
+                    System.out.println(current.getName() + " ha fet " + damage + " de dany a " + enemy.getName() + ".");
                 }
-            } else {
+            } else if (action == 2) {
                 current.defend();
-                System.out.println(current.getName() + " es posa en posicio defensiva.");
+                System.out.println(current.getName() + " es prepara per resistir el proxim cop.");
+            } else {
+                current.rest();
             }
 
             if (!enemy.isAlive()) {
                 System.out.println();
-                System.out.println(current.getName() + " guanya el combat.");
-                showBattleStatus(player1, player2);
+                System.out.println(enemy.getName() + " ha caigut en combat.");
+                System.out.println(current.getName() + " guanya la partida.");
                 return;
             }
 
             RpgCharacter temp = current;
             current = enemy;
             enemy = temp;
-            turn++;
         }
     }
 
-    private void showBattleStatus(RpgCharacter player1, RpgCharacter player2) {
-        System.out.println(player1.getShortDescription());
-        System.out.println(player2.getShortDescription());
+    private void showTurnStatus(RpgCharacter current, RpgCharacter enemy) {
+        System.out.println(current.getName() + " -> Vida: " + current.getHealth() + "/" + (current.getConstitution() * 50)
+                + " | Mana: " + current.getMana() + "/" + (current.getIntelligence() * 30));
+        System.out.println(enemy.getName() + " -> Vida: " + enemy.getHealth() + "/" + (enemy.getConstitution() * 50)
+                + " | Mana: " + enemy.getMana() + "/" + (enemy.getIntelligence() * 30));
+        System.out.println("Arma equipada: " + (current.getEquippedWeapon() == null ? "Cap" : current.getEquippedWeapon().getName()));
     }
 
-    private int chooseCharacter(String message, int forbiddenIndex) {
-        int option = readIntInRange(message, 1, characterCount) - 1;
-
-        while (option == forbiddenIndex) {
-            System.out.println("Aquest personatge ja ha estat escollit. Tria'n un altre.");
-            option = readIntInRange(message, 1, characterCount) - 1;
-        }
-
-        return option;
-    }
-
-    private String readRace() {
-        String race = readNonEmptyText("Raca (Huma, Elf, Orc, Nan): ");
-
-        while (!race.equalsIgnoreCase("Huma")
-                && !race.equalsIgnoreCase("Elf")
-                && !race.equalsIgnoreCase("Orc")
-                && !race.equalsIgnoreCase("Nan")) {
-            System.out.println("Raca no valida.");
-            race = readNonEmptyText("Torna-la a escriure (Huma, Elf, Orc, Nan): ");
-        }
-
-        return race;
-    }
-
-    private String readWeaponType() {
-        String type = readNonEmptyText("Tipus (Espasa, Destral, Basto, Arc): ");
-
-        while (!type.equalsIgnoreCase("Espasa")
-                && !type.equalsIgnoreCase("Destral")
-                && !type.equalsIgnoreCase("Basto")
-                && !type.equalsIgnoreCase("Arc")) {
-            System.out.println("Tipus d'arma no valid.");
-            type = readNonEmptyText("Torna-la a escriure (Espasa, Destral, Basto, Arc): ");
-        }
-
-        return type;
-    }
-
-    private boolean readYesNo(String message) {
-        String answer = readNonEmptyText(message);
-        while (!answer.equalsIgnoreCase("s") && !answer.equalsIgnoreCase("n")) {
-            System.out.println("Resposta no valida.");
-            answer = readNonEmptyText(message);
-        }
-        return answer.equalsIgnoreCase("s");
+    private int selectCharacter(String message) {
+        return readIntInRange(message, 1, characterCount) - 1;
     }
 
     private String readNonEmptyText(String message) {
-        System.out.print(message);
-        String text = scanner.nextLine().trim();
-
-        while (text.isEmpty()) {
-            System.out.println("El text no pot estar buit.");
+        String value;
+        do {
             System.out.print(message);
-            text = scanner.nextLine().trim();
-        }
-
-        return text;
+            value = scanner.nextLine().trim();
+            if (value.isEmpty()) {
+                System.out.println("El text no pot estar buit.");
+            }
+        } while (value.isEmpty());
+        return value;
     }
 
     private int readIntInRange(String message, int min, int max) {
         while (true) {
-            System.out.print(message);
-            String line = scanner.nextLine().trim();
-
             try {
-                int value = Integer.parseInt(line);
+                System.out.print(message);
+                int value = Integer.parseInt(scanner.nextLine());
                 if (value < min || value > max) {
                     System.out.println("Introdueix un valor entre " + min + " i " + max + ".");
                 } else {
