@@ -1,14 +1,14 @@
 import java.util.Random;
 
-public class RpgCharacter {
+public abstract class RpgCharacter {
 
     protected String name;
-    protected String race;
     protected int age;
 
     protected int health;
     protected int mana;
-    protected int stamina;
+    protected int maxHealth;
+    protected int maxMana;
 
     protected int strength;
     protected int dexterity;
@@ -23,162 +23,40 @@ public class RpgCharacter {
 
     protected boolean defending;
 
-    // Atribut extra demanat a l'enunciat
+    // Atribut extra
     protected int level;
 
-    public RpgCharacter(String name, String race, int age,
+    public RpgCharacter(String name, int age,
                         int strength, int dexterity, int constitution,
                         int intelligence, int wisdom, int charisma) {
 
-        this.name = name;
-        this.race = race;
-        setAge(age);
+        this.name = normalizeName(name);
+        this.age = Math.max(age, 0);
 
-        setStrength(strength);
-        setDexterity(dexterity);
-        setConstitution(constitution);
-        setIntelligence(intelligence);
-        setWisdom(wisdom);
-        setCharisma(charisma);
+        this.strength = clampStat(strength);
+        this.dexterity = clampStat(dexterity);
+        this.constitution = clampStat(constitution);
+        this.intelligence = clampStat(intelligence);
+        this.wisdom = clampStat(wisdom);
+        this.charisma = clampStat(charisma);
 
-        this.health = getMaxHealth();
-        this.mana = getMaxMana();
-        this.stamina = 100;
-
-        this.weapons = new Weapon[5];
+        this.weapons = new Weapon[10];
         this.weaponCount = 0;
         this.equippedWeapon = null;
-
         this.defending = false;
         this.level = 1;
+
+        applyRaceModifiers();
+        refreshDerivedStats();
+        this.health = maxHealth;
+        this.mana = maxMana;
     }
 
-    public String getName() {
-        return name;
-    }
+    protected abstract void applyRaceModifiers();
 
-    public String getRace() {
-        return race;
-    }
+    public abstract String getRace();
 
-    public int getAge() {
-        return age;
-    }
-
-    public void setAge(int age) {
-        if (age < 0) {
-            this.age = 0;
-        } else {
-            this.age = age;
-        }
-    }
-
-    public int getHealth() {
-        return health;
-    }
-
-    public void setHealth(int health) {
-        if (health < 0) {
-            this.health = 0;
-        } else if (health > getMaxHealth()) {
-            this.health = getMaxHealth();
-        } else {
-            this.health = health;
-        }
-    }
-
-    public int getMana() {
-        return mana;
-    }
-
-    public void setMana(int mana) {
-        if (mana < 0) {
-            this.mana = 0;
-        } else if (mana > getMaxMana()) {
-            this.mana = getMaxMana();
-        } else {
-            this.mana = mana;
-        }
-    }
-
-    public int getStamina() {
-        return stamina;
-    }
-
-    public void setStamina(int stamina) {
-        if (stamina < 0) {
-            this.stamina = 0;
-        } else if (stamina > 100) {
-            this.stamina = 100;
-        } else {
-            this.stamina = stamina;
-        }
-    }
-
-    public int getStrength() {
-        return strength;
-    }
-
-    public void setStrength(int strength) {
-        this.strength = normalizeStat(strength);
-    }
-
-    public int getDexterity() {
-        return dexterity;
-    }
-
-    public void setDexterity(int dexterity) {
-        this.dexterity = normalizeStat(dexterity);
-    }
-
-    public int getConstitution() {
-        return constitution;
-    }
-
-    public void setConstitution(int constitution) {
-        this.constitution = normalizeStat(constitution);
-    }
-
-    public int getIntelligence() {
-        return intelligence;
-    }
-
-    public void setIntelligence(int intelligence) {
-        this.intelligence = normalizeStat(intelligence);
-    }
-
-    public int getWisdom() {
-        return wisdom;
-    }
-
-    public void setWisdom(int wisdom) {
-        this.wisdom = normalizeStat(wisdom);
-    }
-
-    public int getCharisma() {
-        return charisma;
-    }
-
-    public void setCharisma(int charisma) {
-        this.charisma = normalizeStat(charisma);
-    }
-
-    public Weapon getEquippedWeapon() {
-        return equippedWeapon;
-    }
-
-    public int getWeaponCount() {
-        return weaponCount;
-    }
-
-    public Weapon getWeapon(int index) {
-        if (index < 0 || index >= weaponCount) {
-            return null;
-        }
-        return weapons[index];
-    }
-
-    private int normalizeStat(int value) {
+    protected int clampStat(int value) {
         if (value < 5) {
             return 5;
         }
@@ -188,25 +66,67 @@ public class RpgCharacter {
         return value;
     }
 
-    public int getMaxHealth() {
-        return constitution * 50;
+    protected void refreshDerivedStats() {
+        maxHealth = constitution * 50;
+        maxMana = intelligence * 30;
+        health = Math.min(health, maxHealth == 0 ? constitution * 50 : maxHealth);
+        mana = Math.min(mana, maxMana == 0 ? intelligence * 30 : maxMana);
     }
 
-    public int getMaxMana() {
-        return intelligence * 30;
+    private String normalizeName(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return "SenseNom";
+        }
+        return value.trim();
     }
 
-    public void addWeapon(Weapon weapon) {
-        if (weapon == null || weaponCount >= weapons.length) {
+    protected void increaseStat(String statName, int amount) {
+        if (amount == 0) {
             return;
         }
 
-        weapons[weaponCount] = weapon;
-        weaponCount++;
-
-        if (equippedWeapon == null) {
-            equipWeapon(weaponCount - 1);
+        switch (statName.toLowerCase()) {
+            case "strength":
+                strength = clampStat(strength + amount);
+                break;
+            case "dexterity":
+                dexterity = clampStat(dexterity + amount);
+                break;
+            case "constitution":
+                constitution = clampStat(constitution + amount);
+                break;
+            case "intelligence":
+                intelligence = clampStat(intelligence + amount);
+                break;
+            case "wisdom":
+                wisdom = clampStat(wisdom + amount);
+                break;
+            case "charisma":
+                charisma = clampStat(charisma + amount);
+                break;
+            default:
+                break;
         }
+    }
+
+    public void addWeapon(Weapon weapon) {
+        if (weapon != null && weaponCount < weapons.length) {
+            weapons[weaponCount] = weapon;
+            weaponCount++;
+            if (equippedWeapon == null && canEquipWeapon(weapon)) {
+                equippedWeapon = weapon;
+            }
+        }
+    }
+
+    public boolean canEquipWeapon(Weapon weapon) {
+        if (weapon == null) {
+            return false;
+        }
+        if (!weapon.isMagical()) {
+            return true;
+        }
+        return intelligence >= 10;
     }
 
     public boolean equipWeapon(int index) {
@@ -214,17 +134,28 @@ public class RpgCharacter {
             return false;
         }
 
-        Weapon selectedWeapon = weapons[index];
-
-        if (selectedWeapon.isMagical() && intelligence < 10) {
+        Weapon selected = weapons[index];
+        if (!canEquipWeapon(selected)) {
             return false;
         }
 
-        equippedWeapon = selectedWeapon;
+        equippedWeapon = selected;
         return true;
     }
 
-    public int calculateDamage() {
+    public void showWeapons() {
+        if (weaponCount == 0) {
+            System.out.println("No te armes.");
+            return;
+        }
+
+        for (int i = 0; i < weaponCount; i++) {
+            String equipped = weapons[i] == equippedWeapon ? " [equipada]" : "";
+            System.out.println((i + 1) + ". " + weapons[i] + equipped);
+        }
+    }
+
+    protected int calculateBaseDamage() {
         if (equippedWeapon == null) {
             return strength;
         }
@@ -236,15 +167,26 @@ public class RpgCharacter {
         return (int) Math.round(strength * (1 + equippedWeapon.getDamage() / 100.0));
     }
 
+    protected int applyAttackModifier(int damage) {
+        return damage;
+    }
+
+    protected int applyDefenseModifier(int damage) {
+        return damage / 2;
+    }
+
+    protected int getLifeRegenAmount() {
+        return constitution * 3;
+    }
+
+    protected int getManaRegenAmount() {
+        return intelligence * 2;
+    }
+
     public int attack(RpgCharacter enemy, Random random) {
-        int damage = calculateDamage();
-        int realDamage = enemy.receiveAttack(damage, random);
-
-        regenerateLife();
-        regenerateMana();
-        setStamina(stamina - 15);
-
-        return realDamage;
+        int damage = calculateBaseDamage();
+        damage = applyAttackModifier(damage);
+        return enemy.receiveAttack(damage, random);
     }
 
     public int receiveAttack(int damage, Random random) {
@@ -254,12 +196,15 @@ public class RpgCharacter {
         }
 
         if (defending) {
-            damage = damage / 2;
+            damage = applyDefenseModifier(damage);
         }
 
-        setHealth(health - damage);
-        defending = false;
+        health -= damage;
+        if (health < 0) {
+            health = 0;
+        }
 
+        defending = false;
         return damage;
     }
 
@@ -271,54 +216,93 @@ public class RpgCharacter {
 
     public void defend() {
         defending = true;
-        regenerateLife();
-        regenerateMana();
-        setStamina(stamina + 10);
     }
 
     public void regenerateLife() {
-        setHealth(health + constitution * 3);
+        health += getLifeRegenAmount();
+        if (health > maxHealth) {
+            health = maxHealth;
+        }
     }
 
     public void regenerateMana() {
-        setMana(mana + intelligence * 2);
+        mana += getManaRegenAmount();
+        if (mana > maxMana) {
+            mana = maxMana;
+        }
     }
 
-    // Metode propi afegit per donar una mica mes de personalitat al personatge
+    // Metode extra
     public void rest() {
-        setStamina(stamina + 25);
         regenerateLife();
         regenerateMana();
+        System.out.println(name + " descansa una estona i recupera forces.");
     }
 
     public boolean isAlive() {
         return health > 0;
     }
 
-    public String getShortDescription() {
-        String weaponName = "Sense arma";
-        if (equippedWeapon != null) {
-            weaponName = equippedWeapon.getName();
-        }
+    public String getStatsSummary() {
+        return "FOR=" + strength + ", DES=" + dexterity + ", CON=" + constitution
+                + ", INT=" + intelligence + ", SAV=" + wisdom + ", CAR=" + charisma;
+    }
 
-        return name + " | Raca: " + race + " | Vida: " + health + "/" + getMaxHealth() +
-                " | Mana: " + mana + "/" + getMaxMana() +
-                " | Stamina: " + stamina + " | Arma equipada: " + weaponName;
+    public String getShortDescription() {
+        String weaponText = equippedWeapon == null ? "Sense arma" : equippedWeapon.getName();
+        return getRace() + " - " + name + " | Vida: " + health + "/" + maxHealth
+                + " | Mana: " + mana + "/" + maxMana + " | Arma: " + weaponText;
     }
 
     public String getFullDescription() {
-        return "Nom: " + name +
-                "\nRaca: " + race +
-                "\nEdat: " + age +
-                "\nNivell: " + level +
-                "\nForca: " + strength +
-                "\nDestresa: " + dexterity +
-                "\nConstitucio: " + constitution +
-                "\nIntelligencia: " + intelligence +
-                "\nSaviesa: " + wisdom +
-                "\nCarisma: " + charisma +
-                "\nVida: " + health + "/" + getMaxHealth() +
-                "\nMana: " + mana + "/" + getMaxMana() +
-                "\nStamina: " + stamina;
+        return getShortDescription() + " | " + getStatsSummary() + " | Nivell: " + level;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getAge() {
+        return age;
+    }
+
+    public int getHealth() {
+        return health;
+    }
+
+    public int getMana() {
+        return mana;
+    }
+
+    public int getStrength() {
+        return strength;
+    }
+
+    public int getDexterity() {
+        return dexterity;
+    }
+
+    public int getConstitution() {
+        return constitution;
+    }
+
+    public int getIntelligence() {
+        return intelligence;
+    }
+
+    public int getWisdom() {
+        return wisdom;
+    }
+
+    public int getCharisma() {
+        return charisma;
+    }
+
+    public Weapon getEquippedWeapon() {
+        return equippedWeapon;
+    }
+
+    public int getWeaponCount() {
+        return weaponCount;
     }
 }
