@@ -17,7 +17,9 @@ public class Weapon {
     }
 
     public void setName(String name) {
-        this.name = name;
+        if (name != null && !name.trim().isEmpty()) {
+            this.name = name.trim();
+        }
     }
 
     public String getType() {
@@ -25,7 +27,9 @@ public class Weapon {
     }
 
     public void setType(String type) {
-        this.type = type;
+        if (type != null && !type.trim().isEmpty()) {
+            this.type = type.trim();
+        }
     }
 
     public int getDamage() {
@@ -52,7 +56,7 @@ public class Weapon {
 
     @Override
     public String toString() {
-        String category = magical ? "Magica" : "Fisica";
-        return name + " | Tipus: " + type + " | Dany: " + damage + " | " + category;
+        String mode = magical ? "magica" : "fisica";
+        return name + " | Tipus: " + type + " | Dany: " + damage + " | " + mode;
     }
 }
